@@ -8,6 +8,10 @@
 
 A modular, bare-metal **Controller Area Network (CAN 2.0B)** firmware implementation on ARM Cortex-M (STM32F103) demonstrating automotive-grade peripheral configuration, hardware acceptance filtering, deterministic fixed-point telemetry serialization, and safety supervision.
 
+<p align="center">
+  <img src="docs/demo_telemetry.svg" alt="STM32 CAN Telemetry Live Execution Demo" width="850">
+</p>
+
 ---
 
 ## 📌 Executive Summary
@@ -19,6 +23,14 @@ In industrial and automotive distributed architectures, bus reliability and dete
 * **Deterministic Telemetry Packing:** 8-byte big-endian fixed-point serialization for Electric Vehicle (EV) battery pack telemetry (Voltage, Current, Cell Temperature, Motor RPM).
 * **Defensive Safety Supervision:** Real-time over-temperature threshold alarms and a non-blocking **300ms heartbeat timeout monitor** to trigger safe-state failover during communication loss.
 * **Silicon Self-Test Verification:** Validated using the internal **bxCAN Loopback Mode**, allowing full register, mailbox, filter, and FIFO validation on a single MCU without external transceivers.
+
+---
+
+## 🏗️ System Architecture Block Diagram
+
+<p align="center">
+  <img src="docs/system_architecture.svg" alt="STM32F103 CAN System Architecture" width="850">
+</p>
 
 ---
 
