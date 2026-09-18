@@ -1,0 +1,17 @@
+# Build Artifacts
+*.o
+*.elf
+*.bin
+*.hex
+*.axf
+*.map
+can_demo
+can_demo.exe
+
+# IDE & Editor metadata
+.vscode/
+.idea/
+*.launch
+Debug/
+Release/
+build/
