@@ -1,10 +1,16 @@
 # STM32 CAN 2.0B Communication & Telemetry Prototype
 
+[![Build & Test Firmware](https://github.com/YOUR_GITHUB_USERNAME/stm32-can-telemetry-prototype/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/stm32-can-telemetry-prototype/actions)
+![C99 Standard](https://img.shields.io/badge/Language-C99-blue.svg)
+![Target MCU](https://img.shields.io/badge/Target-STM32F103--ARM%20Cortex--M3-orange.svg)
+![Protocol](https://img.shields.io/badge/Protocol-CAN%202.0B%20(500%20kbps)-green.svg)
+![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)
+
 A modular, bare-metal **Controller Area Network (CAN 2.0B)** firmware implementation on ARM Cortex-M (STM32F103) demonstrating automotive-grade peripheral configuration, hardware acceptance filtering, deterministic fixed-point telemetry serialization, and safety supervision.
 
 ---
 
-## 📌 Executive Summary & Motivation
+## 📌 Executive Summary
 
 In industrial and automotive distributed architectures, bus reliability and deterministic timing are critical. This prototype demonstrates a complete CAN communication pipeline built from first principles on the **STM32 bxCAN peripheral**:
 
@@ -16,34 +22,64 @@ In industrial and automotive distributed architectures, bus reliability and dete
 
 ---
 
-## 🏗️ System Architecture & Data Flow
+## 🔄 End-to-End Firmware Execution Flow
 
 ```mermaid
 flowchart TD
-    subgraph AppLayer["Application & Supervision Layer"]
-        Sensors["EV Telemetry Source<br>(Pack Volt, Temp, Motor RPM)"]
-        Safety["Safety Supervisor<br>(Over-Temp & 300ms Timeout)"]
-        Display["UART Telemetry Monitor<br>(PC Console Output)"]
+    Start([System Start]) --> InitCAN[can_driver_init: Mode = LOOPBACK]
+    InitCAN --> InitClock[Configure APB1 36 MHz Prescaler: BRP=4, TS1=14, TS2=3]
+    InitClock --> ConfigFilter[Configure Filter Bank 0: ID=0x120, MASK=0x7FF]
+    
+    subgraph CyclicLoop["100ms Periodic Executive Loop"]
+        direction TB
+        Sample[Sample Telemetry: Pack Voltage, Temp, RPM] --> Pack[telemetry_pack: 8-Byte Big-Endian Buffer]
+        Pack --> TX[can_driver_transmit: Dispatch to TX Mailbox]
+        
+        TX --> LoopbackCheck{Internal Silicon Loopback}
+        
+        LoopbackCheck --> FilterMatch{Hardware Filter Bank 0 Match?<br>ID & 0x7FF == 0x120}
+        
+        FilterMatch -- YES --> Enqueue[Enqueue to RX FIFO 0 Ring Buffer]
+        FilterMatch -- NO: Noise Frame --> Drop[Silently Drop in Silicon<br>Zero CPU Overhead]
+        
+        Enqueue --> Receive[can_driver_receive: Dequeue Frame]
+        Receive --> Unpack[telemetry_unpack: Extract Engineering Units]
+        
+        Unpack --> TempCheck{Cell Temp >= 60°C?}
+        TempCheck -- YES --> Alarm[Raise FAULT_OVER_TEMP: Derate Motor & Active Cooling]
+        TempCheck -- NO --> Normal[Status: NORMAL]
+        
+        Unpack --> TimeoutCheck{Last Frame > 300ms?}
+        TimeoutCheck -- YES --> CommLoss[Raise FAULT_COMM_TIMEOUT: Fail-Safe State]
+        TimeoutCheck -- NO --> KeepAlive[Heartbeat Maintained]
     end
 
-    subgraph Middleware["Serialization / Filter Layer"]
-        Packer["telemetry_pack()<br>(8-Byte Big-Endian Packing)"]
-        Unpacker["telemetry_unpack()<br>(Fixed-Point Unpacking)"]
-    end
-
-    subgraph HardwareCAN["STM32 bxCAN Silicon Controller"]
-        direction LR
-        TX_Mailbox["TX Mailbox 0<br>(500 kbps)"]
-        LoopbackPath["Internal Loopback Route"]
-        FilterBank["32-bit Filter Bank 0<br>(ID: 0x120, Mask: 0x7FF)"]
-        RX_FIFO["RX FIFO 0<br>(Non-Blocking Ring Buffer)"]
-
-        TX_Mailbox --> LoopbackPath --> FilterBank --> RX_FIFO
-    end
-
-    Sensors --> Packer --> TX_Mailbox
-    RX_FIFO --> Unpacker --> Safety --> Display
+    ConfigFilter --> CyclicLoop
 ```
+
+---
+
+## ⚡ Physical Layer & Differential Waveform Fundamentals
+
+Automotive environments suffer from severe electromagnetic interference (EMI). CAN eliminates this through **balanced differential signaling** across a twisted-pair line ($CAN\_H$ and $CAN\_L$ terminated with $120\ \Omega$ at both ends):
+
+```
+Voltage (V)
+   4.0V ───┐
+   3.5V ───┼───────────┌───────────────┐────────────────── CAN_H (Dominant: 3.5V)
+   3.0V ───┤           │               │
+   2.5V ───┼───────────┴───────────────┴────────────────── Common Bias (Recessive: 2.5V)
+   2.0V ───┤           ┌───────────────┐
+   1.5V ───┼───────────┘               └────────────────── CAN_L (Dominant: 1.5V)
+   1.0V ───┘
+           │  RECESSIVE│   DOMINANT    │   RECESSIVE
+           │ (Logic 1) │   (Logic 0)   │  (Logic 1)
+           │ Vdiff = 0V│   Vdiff = 2V  │   Vdiff = 0V
+```
+
+* **Recessive (Logic 1):** Both $CAN\_H$ and $CAN\_L$ float at $2.5\text{V}$ $\implies V_{diff} = 0\text{V}$.
+* **Dominant (Logic 0):** Transceiver pulls $CAN\_H \rightarrow 3.5\text{V}$ and $CAN\_L \rightarrow 1.5\text{V}$ $\implies V_{diff} = 2.0\text{V}$.
+* **Common-Mode Rejection:** Any radiated EMI from motors or ignition coils couples onto both wires identically. The differential receiver computes $(V_{CAN\_H} - V_{CAN\_L})$, completely cancelling the induced noise.
 
 ---
 
@@ -110,7 +146,7 @@ Result: NO MATCH -> Silently discarded by hardware silicon (Zero CPU load)
 
 ## 💻 Execution & Verification Output
 
-The prototype was compiled and executed via GCC with full diagnostic telemetry:
+The prototype was compiled and executed via GCC with strict compiler warnings enabled (`-Wall -Wextra -Werror -pedantic`):
 
 ```text
 +-------------------------------------------------------------------------+
@@ -154,12 +190,12 @@ The prototype was compiled and executed via GCC with full diagnostic telemetry:
 
 ### Prerequisites
 * GCC compiler (MinGW for Windows or native Linux `build-essential`)
-* Standard Make tool
+* Standard Make utility
 
 ### Quick Start
 ```bash
 # Clone the repository
-git clone https://github.com/YourUsername/stm32-can-telemetry-prototype.git
+git clone https://github.com/YOUR_GITHUB_USERNAME/stm32-can-telemetry-prototype.git
 cd stm32-can-telemetry-prototype
 
 # Compile the prototype

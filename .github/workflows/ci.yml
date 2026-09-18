@@ -1,0 +1,27 @@
+name: Build & Test Firmware
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up GCC & Build Tools
+      run: sudo apt-get update && sudo apt-get install -y build-essential
+
+    - name: Compile Code with Strict Compiler Flags
+      run: |
+        make clean
+        make
+
+    - name: Execute CAN Simulation & Verify Telemetry Scenarios
+      run: |
+        ./can_demo
