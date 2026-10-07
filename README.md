@@ -219,13 +219,11 @@ make
 
 ---
 
-## 🎤 Interview Pitch Script (How to Present This in 60 Seconds)
+## 💡 Key Engineering Takeaways
 
-> *"In addition to my production background in industrial serial protocols (Modbus RS-485, UART, I2C), I engineered this personal STM32 CAN 2.0B prototype to validate low-level automotive networking from first principles.*
->
-> *I configured the STM32 bxCAN controller for 500 kbps by calculating the prescaler and phase segments on a 36 MHz APB1 clock tree, reaching an 83.3% sample point.*
->
-> *To eliminate software interrupt overhead from high bus traffic, I configured 32-bit hardware acceptance filter banks in silicon to route only valid telemetry IDs to the RX FIFO. I also implemented fixed-point EV battery telemetry serialization, safety threshold evaluation for thermal runaway, and a 300ms heartbeat timeout detection algorithm."*
+- **Silicon-Level Acceptance Filtering:** Configured 32-bit hardware identifier mask mode to filter unauthorized network traffic in hardware, eliminating CPU interrupt overhead from irrelevant bus messages.
+- **Deterministic Bit Timing:** Configured for 500 kbps on a 36 MHz APB1 clock tree with an 83.3% sample point complying with ISO 11898-1 automotive physical layer standards.
+- **Fail-Safe Supervisory Loop:** Combines real-time thermal threshold evaluation with a 300 ms non-blocking heartbeat watchdog to guarantee deterministic fail-safe behavior during communication loss.
 
 ---
 
