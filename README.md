@@ -1,6 +1,6 @@
 # STM32 CAN 2.0B Communication & Telemetry Prototype
 
-[![Build & Test Firmware](https://github.com/YOUR_GITHUB_USERNAME/stm32-can-telemetry-prototype/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/stm32-can-telemetry-prototype/actions)
+[![Build & Test Firmware](https://github.com/sherifred-singh/stm32-can-telemetry-prototype/actions/workflows/ci.yml/badge.svg)](https://github.com/sherifred-singh/stm32-can-telemetry-prototype/actions)
 ![C99 Standard](https://img.shields.io/badge/Language-C99-blue.svg)
 ![Target MCU](https://img.shields.io/badge/Target-STM32F103--ARM%20Cortex--M3-orange.svg)
 ![Protocol](https://img.shields.io/badge/Protocol-CAN%202.0B%20(500%20kbps)-green.svg)
